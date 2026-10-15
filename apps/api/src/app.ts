@@ -36,6 +36,7 @@ const swagger = {
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swagger));
 
 app.get("/health", (_req, res) => res.json({ ok: true, service: "career-platform-api" }));
+app.get("/api/health", (_req, res) => res.json({ ok: true, service: "career-platform-api" }));
 
 const registerSchema = z.object({ name: z.string().min(2).max(100), email: z.string().email(), password: z.string().min(8).max(128) });
 app.post("/api/auth/register", async (req, res, next) => {
