@@ -1,4 +1,6 @@
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+// Use the same-origin Vercel function in production. A full URL can still be
+// supplied for local development or a separately hosted API.
+const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export function getToken() {
   if (typeof window === "undefined") return "";
