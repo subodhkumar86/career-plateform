@@ -70,7 +70,10 @@ Google Calendar and SMTP are optional integrations. Configure Google OAuth clien
 - Production hardening still recommended: refresh-token rotation, email verification, CSRF strategy if using cookies, audit logs, request IDs, durable outbox, and stronger consultant/admin workflows.
 
 ## Tests
-`npm test -w apps/api`. Tests cover basic health and booking state helper logic. Expand with integration tests using a dedicated test MongoDB, Stripe webhook signature fixtures, and frontend Playwright tests before production deployment.
+`npm test -w apps/api`. The suite covers the health endpoint, unauthenticated access to protected chat routes, and booking state transitions. Expand with integration tests using a dedicated test MongoDB, Stripe webhook signature fixtures, and frontend Playwright tests before production deployment.
+
+## Vercel deployment
+The repository deploys as one Vercel project. Next.js serves the web application and `api/[...path].ts` adapts the Express API to a serverless function. Set `MONGODB_URI`, `JWT_SECRET`, and the optional integration variables in the Vercel project Production environment. The frontend defaults to same-origin `/api` calls.
 
 ## Known limitations / trade-offs
 - This is an assessment-ready functional foundation, not a claim of fully audited production software.
