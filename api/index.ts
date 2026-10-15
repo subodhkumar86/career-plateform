@@ -13,6 +13,8 @@ function connectDatabase() {
 export default async function handler(req: any, res: any) {
   try {
     await connectDatabase();
+    const route = Array.isArray(req.query?.path) ? req.query.path.join("/") : req.query?.path;
+    if (route) req.url = `/api/${route}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`;
     return app(req, res);
   } catch (error) {
     console.error("API initialization failed", error);
