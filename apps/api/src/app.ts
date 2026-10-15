@@ -11,6 +11,7 @@ import { config } from "./config";
 import { authenticate, AuthRequest } from "./middleware";
 import { Booking, ChatMessage, ChatSession, Consultant, Resume, StripeEvent, User } from "./models";
 import { createCalendarEvent, getOpenAI, getStripe, sendConfirmationEmail } from "./integrations";
+import { transitionBooking } from "./booking-state";
 
 const app = express();
 // Vercel and other reverse proxies forward the client address. This keeps
@@ -249,22 +250,27 @@ app.post("/api/payments/webhook", async (req: Request, res: Response) => {
   try {
     const already = await StripeEvent.findOne({ eventId: event.id });
     if (already) return res.json({ received: true, duplicate: true });
-    await StripeEvent.create({ eventId: event.id, type: event.type });
+    try {
+      await StripeEvent.create({ eventId: event.id, type: event.type });
+    } catch (error: any) {
+      if (error?.code === 11000) return res.json({ received: true, duplicate: true });
+      throw error;
+    }
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const booking = await Booking.findOne({ _id: session.metadata?.bookingId, stripeCheckoutSessionId: session.id }).populate("consultantId");
       if (booking && booking.status === "PENDING_PAYMENT" && session.payment_status === "paid") {
-        booking.status = "PAID";
+        transitionBooking(booking, "PAID");
         booking.paymentStatus = "PAID";
         booking.stripePaymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : undefined;
         await booking.save();
         const consultant: any = booking.consultantId;
         try {
-          const calendar = await createCalendarEvent({ consultantEmail: consultant.email, name: booking.name, email: booking.email, startAt: booking.startAt, endAt: booking.endAt, agenda: booking.agenda });
+          const calendar = await createCalendarEvent({ consultantEmail: consultant.email, name: booking.name, email: booking.email, startAt: booking.startAt, endAt: booking.endAt, agenda: booking.agenda || undefined });
           booking.calendarEventId = calendar.eventId;
           booking.meetingUrl = calendar.meetingUrl;
           booking.calendarError = undefined;
-          booking.status = "CONFIRMED";
+          transitionBooking(booking, "CONFIRMED");
           await booking.save();
           const mail = await sendConfirmationEmail({ to: booking.email, name: booking.name, consultant: consultant.name, startAt: booking.startAt, meetingUrl: booking.meetingUrl, bookingId: booking.id });
           if (mail.sent) { booking.emailSentAt = new Date(); await booking.save(); }
