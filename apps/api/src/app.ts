@@ -223,6 +223,9 @@ app.post("/api/payments/checkout", authenticate, async (req: AuthRequest, res, n
     const booking = await Booking.findOne({ _id: bookingId, userId: req.userId }).populate("consultantId");
     if (!booking) return res.status(404).json({ error: "Booking not found" });
     if (booking.status !== "PENDING_PAYMENT") return res.status(409).json({ error: "Booking is not awaiting payment" });
+    if (!config.stripeKey && config.demoMode) {
+      return res.json({ checkoutUrl: `${config.clientUrl}/consultations?payment=demo&bookingId=${booking.id}`, demo: true });
+    }
     const consultant: any = booking.consultantId;
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
@@ -243,6 +246,7 @@ app.post("/api/payments/checkout", authenticate, async (req: AuthRequest, res, n
 app.post("/api/payments/webhook", async (req: Request, res: Response) => {
   let event: any;
   try {
+    if (!config.stripeWebhookSecret && config.demoMode) return res.json({ received: true, demo: true });
     const stripe = getStripe();
     if (!config.stripeWebhookSecret) return res.status(503).send("Stripe webhook is not configured");
     event = stripe.webhooks.constructEvent(req.body, req.header("stripe-signature") || "", config.stripeWebhookSecret);
