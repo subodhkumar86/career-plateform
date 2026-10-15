@@ -13,6 +13,9 @@ import { Booking, ChatMessage, ChatSession, Consultant, Resume, StripeEvent, Use
 import { createCalendarEvent, getOpenAI, getStripe, sendConfirmationEmail } from "./integrations";
 
 const app = express();
+// Vercel and other reverse proxies forward the client address. This keeps
+// rate-limit keys correct and avoids express-rate-limit proxy warnings.
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl.split(",").map(v => v.trim()), credentials: true }));
 app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
@@ -297,6 +300,7 @@ app.get("/api/dashboard", authenticate, async (req: AuthRequest, res, next) => {
 });
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  if (err?.type === "entity.parse.failed") return res.status(400).json({ error: "Malformed JSON request body" });
   if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.issues.map(i => ({ path: i.path.join("."), message: i.message })) });
   if (err?.code === 11000) return res.status(409).json({ error: "A record with this value already exists" });
   const status = Number(err?.status) || 500;
