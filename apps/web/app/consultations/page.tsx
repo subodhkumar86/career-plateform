@@ -17,11 +17,21 @@ export default function Consultations() {
   const [phone, setPhone] = useState("");
   const [agenda, setAgenda] = useState("");
 
+  function defaultSlot() {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    date.setHours(10, 0, 0, 0);
+    while (date.getDay() === 0 || date.getDay() === 6) date.setDate(date.getDate() + 1);
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
   async function load() {
     try {
       const c = await api<any>("/consultants");
       setConsultants(c.consultants);
       if (c.consultants[0]) setConsultantId(c.consultants[0]._id);
+      setStartAt((current) => current || defaultSlot());
 
       const b = await api<any>("/bookings?page=1&limit=20&sort=-createdAt");
       setBookings(b.bookings);
@@ -42,6 +52,10 @@ export default function Consultations() {
   async function book() {
     setError("");
     try {
+      if (!startAt || Number.isNaN(new Date(startAt).getTime())) {
+        setError("Please select a valid consultation time.");
+        return;
+      }
       const booking = await api<any>("/bookings", {
         method: "POST",
         body: JSON.stringify({ consultantId, startAt: new Date(startAt).toISOString(), name, email, phone, agenda })

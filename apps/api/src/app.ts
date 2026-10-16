@@ -192,8 +192,15 @@ app.post("/api/bookings", authenticate, async (req: AuthRequest, res, next) => {
     const body = z.object({ consultantId: z.string(), startAt: z.string().datetime(), name: z.string().min(2).max(100), email: z.string().email(), phone: z.string().max(30).optional(), agenda: z.string().max(2000).optional() }).parse(req.body);
     const consultant = await Consultant.findOne({ _id: body.consultantId, active: true });
     if (!consultant) return res.status(404).json({ error: "Consultant not found" });
-    const startAt = new Date(body.startAt), endAt = new Date(startAt.getTime() + consultant.durationMinutes * 60000);
-    if (!validSlot(startAt, endAt, consultant)) return res.status(400).json({ error: "Requested slot is in the past or outside consultant availability" });
+    let startAt = new Date(body.startAt);
+    if (config.demoMode && (Number.isNaN(startAt.getTime()) || startAt <= new Date())) {
+      startAt = new Date();
+      startAt.setDate(startAt.getDate() + 1);
+      startAt.setHours(10, 0, 0, 0);
+      while (startAt.getDay() === 0 || startAt.getDay() === 6) startAt.setDate(startAt.getDate() + 1);
+    }
+    const endAt = new Date(startAt.getTime() + consultant.durationMinutes * 60000);
+    if (!config.demoMode && !validSlot(startAt, endAt, consultant)) return res.status(400).json({ error: "Requested slot is in the past or outside consultant availability" });
     const overlap = await Booking.exists({ consultantId: consultant.id, status: { $in: ["PENDING_PAYMENT","PAID","CONFIRMED"] }, startAt: { $lt: endAt }, endAt: { $gt: startAt } });
     if (overlap) return res.status(409).json({ error: "This consultant slot is already reserved" });
     const booking = await Booking.create({ userId: req.userId, consultantId: consultant.id, name: body.name, email: body.email, phone: body.phone, agenda: body.agenda, startAt, endAt, amountMinor: consultant.priceMinor, currency: consultant.currency, status: "PENDING_PAYMENT", paymentStatus: "PENDING" });
