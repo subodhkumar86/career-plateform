@@ -346,18 +346,23 @@ label {
 }
 
 @media (max-width: 640px) {
-  .nav { justify-content: flex-start; width: 100%; gap: 4px; }
+  .nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: stretch; width: 100%; gap: 6px; }
   .topbar-inner {
     flex-direction: column;
     align-items: flex-start;
   }
   .brand { font-size: 1.2rem; }
-  .nav a { padding: 7px 8px; font-size: 0.86rem; }
+  .nav a { display: flex; align-items: center; justify-content: center; min-height: 38px; padding: 6px 4px; font-size: 0.8rem; text-align: center; }
+  .nav .nav-cta { grid-column: span 3; }
   .form-shell { margin-top: 24px; }
   .grid, .features { grid-template-columns: 1fr; }
-  .row[style*="space-between"] { align-items: flex-start; }
+  .row[style*="space-between"] { align-items: stretch; flex-direction: column; }
   .row[style*="space-between"] > * { max-width: 100%; }
   .btn { min-height: 44px; padding: 12px 14px; }
+  .row > .btn, .row > a.btn { width: 100%; text-align: center; }
+  form.row { flex-wrap: nowrap; align-items: stretch; }
+  form.row .btn { width: auto; flex: 0 0 auto; }
+  form.row .input { min-width: 0; }
   .form-shell { width: 100%; padding: 22px 18px; }
   .hero-metric { padding: 18px; }
   h1 { font-size: clamp(2rem, 12vw, 3.2rem); overflow-wrap: anywhere; }
