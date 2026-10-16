@@ -53,7 +53,7 @@ app.post("/api/auth/register", async (req, res, next) => {
     if (!config.jwtSecret) return res.status(500).json({ error: "JWT_SECRET is not configured" });
     const token = jwt.sign({ sub: user.id, role: user.role }, config.jwtSecret, { expiresIn: config.jwtExpiresIn as jwt.SignOptions["expiresIn"] });
     res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
-  } catch (e) { next(e); }
+  } catch (e) { console.error("Registration failed", e); next(e); }
 });
 app.post("/api/auth/login", async (req, res, next) => {
   try {
