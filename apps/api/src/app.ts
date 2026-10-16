@@ -224,6 +224,10 @@ app.post("/api/payments/checkout", authenticate, async (req: AuthRequest, res, n
     if (!booking) return res.status(404).json({ error: "Booking not found" });
     if (booking.status !== "PENDING_PAYMENT") return res.status(409).json({ error: "Booking is not awaiting payment" });
     if (!config.stripeKey && config.demoMode) {
+      transitionBooking(booking, "PAID");
+      booking.paymentStatus = "PAID";
+      transitionBooking(booking, "CONFIRMED");
+      await booking.save();
       return res.json({ checkoutUrl: `${config.clientUrl}/consultations?payment=demo&bookingId=${booking.id}`, demo: true });
     }
     const consultant: any = booking.consultantId;
